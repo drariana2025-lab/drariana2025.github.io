@@ -1,8 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'http://localhost:54321';
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'no-key-provided';
+// ВРЕМЕННО: жёстко прописываем значения из Supabase
+const SUPABASE_URL = 'https://blayllkckpwjxfaiqioi.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_NweP92yxK7SVrnO-9q_s-g_WNFfTeEe'; // твой ключ
 
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
