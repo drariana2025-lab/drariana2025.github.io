@@ -168,12 +168,16 @@ export default function ProfilePage() {
   };
   
   applyAnalyzedDataset(rows, fileRecord.file_name, metadata as any);
-  toast.success('Анализ завершен! Платформа адаптирована под ваши данные.');
-  
-} catch (err: any) {
-  console.error('Analysis error:', err);
-  toast.error(err.message || 'Сбой анализа');
-}
+ toast.success('Анализ завершен! Платформа адаптирована под ваши данные.');
+      
+    } catch (err: any) {
+      console.error('Analysis error:', err);
+      toast.error(err.message || 'Сбой анализа');
+    } finally {
+      setAnalyzing(false);
+      setAnalyzingFileId(null);
+    }
+  };
   return (
     <div className="space-y-6 sm:space-y-8 animate-fade-in pb-20 w-full max-w-6xl mx-auto px-1 sm:px-2 min-w-0">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
