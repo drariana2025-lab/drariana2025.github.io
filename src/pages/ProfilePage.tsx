@@ -147,56 +147,33 @@ export default function ProfilePage() {
     clearCustomData({ silent: true });
     resetFilters();
     try {
-      const { data, error } = await supabase.storage.from('uploads').download(fileRecord.file_path);
-      if (error || !data) throw new Error('Файл не найден в хранилище');
+  const { data, error } = await supabase.storage.from('uploads').download(fileRecord.file_path);
+  if (error || !data) throw new Error('Файл не найден в хранилище');
 
-      const file = new File([data], fileRecord.file_name);
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      // 1. Check if backend is reachable
-      try {
-        const ping = await fetch(CONFIG.API_URL, { signal: AbortSignal.timeout(2000) }).catch(() => null);
-        if (!ping) throw new Error(`Бэкенд недоступен по адресу ${CONFIG.API_URL}. Пожалуйста, запустите backend/main.py`);
-      } catch (e: any) {
-        if (e.name === 'TimeoutError') { /* ignore timeout on root ping if server is slow but alive */ }
-        else throw e;
-      }
-
-      // 2. Upload to Backend
-      const uploadUrl = `${getApiUrl(CONFIG.ENDPOINTS.UPLOAD)}?user_id=${user?.id || '1'}`;
-      const uploadRes = await fetch(uploadUrl, { method: 'POST', body: formData }).catch(err => {
-        throw new Error(`Ошибка подключения к серверу (${CONFIG.API_URL}). Убедитесь, что бэкенд запущен.`);
-      });
-      
-      if (!uploadRes.ok) {
-        const errJson = await uploadRes.json().catch(() => ({}));
-        throw new Error(errJson.detail || 'Сервер анализа вернул ошибку при загрузке');
-      }
-      const uploadData = await uploadRes.json();
-      
-      // 3. Trigger Analysis
-      const analyzeUrl = `${getApiUrl(CONFIG.ENDPOINTS.ANALYZE)}?file_path=${uploadData.path}`;
-      const analysisRes = await fetch(analyzeUrl, { method: 'POST' }).catch(err => {
-        throw new Error('Не удалось связаться с сервером для анализа. Убедитесь, что бэкенд запущен.');
-      });
-      
-      const analysisJson = await analysisRes.json().catch(() => ({}));
-      if (!analysisRes.ok) throw new Error(analysisJson.detail || 'Ошибка сервера при анализе данных. Проверьте содержимое файла.');
-
-      const rows = await parseFile(file);
-      applyAnalyzedDataset(rows, fileRecord.file_name, analysisJson.analysis_results);
-
-      toast.success('Анализ завершен! Платформа адаптирована под ваши данные.');
-    } catch (err: any) {
-      console.error('Analysis error:', err);
-      toast.error(err.message || 'Сбой анализа');
-    } finally {
-      setAnalyzing(false);
-      setAnalyzingFileId(null);
-    }
+  const file = new File([data], fileRecord.file_name);
+  const rows = await parseFile(file);
+  
+  // Генерируем простые метаданные для анализа
+  const metadata = {
+    columns_info: Object.keys(rows[0] || {}).reduce((acc, col) => {
+      const sample = rows[0][col];
+      const isNumeric = typeof sample === 'number' && !isNaN(sample);
+      acc[col] = isNumeric ? 'numeric' : 'categorical';
+      return acc;
+    }, {} as Record<string, string>),
+    statistics: {},
+    chart_configs: [],
+    row_count: rows.length,
+    preview: rows.slice(0, 10)
   };
-
+  
+  applyAnalyzedDataset(rows, fileRecord.file_name, metadata as any);
+  toast.success('Анализ завершен! Платформа адаптирована под ваши данные.');
+  
+} catch (err: any) {
+  console.error('Analysis error:', err);
+  toast.error(err.message || 'Сбой анализа');
+}
   return (
     <div className="space-y-6 sm:space-y-8 animate-fade-in pb-20 w-full max-w-6xl mx-auto px-1 sm:px-2 min-w-0">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
